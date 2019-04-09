@@ -1,9 +1,12 @@
 import React, { Component } from 'react';
+import moment from 'moment';
 
 import Header from './header';
 import Footer from './footer';
 import Modal from './modal';
 import Tile from './tile';
+
+import dynamicSort from '../helpers/dynamicSort';
 
 /* globals $ */
 class App extends Component {
@@ -13,7 +16,8 @@ class App extends Component {
     this.state = {
       clients: [],
       selectedClient: null,
-      tiles: []
+      tiles: [],
+      activities: []
     };
   }
 
@@ -36,7 +40,7 @@ class App extends Component {
     });
   }
 
-  getActivitiesForOneClient(client) {
+  getHomePageActivities(client) {
     if (client) {
       if (client.fields['LimeadeAccessToken']) {
         console.log('Getting visible Home page activities for ' + client.fields['Account Name']);
@@ -67,12 +71,53 @@ class App extends Component {
     }
   }
 
+  getAllActivities(client) {
+    if (client) {
+      if (client.fields['LimeadeAccessToken']) {
+        console.log('Getting all activities (past, current, and scheduled) for ' + client.fields['Account Name']);
+        $.ajax({
+          url: 'https://api.limeade.com/api/admin/activity',
+          type: 'GET',
+          dataType: 'json',
+          headers: {
+            Authorization: 'Bearer ' + client.fields['LimeadeAccessToken']
+          },
+          contentType: 'application/json; charset=utf-8'
+        }).done(result => {
+          const activities = result.Data;
+
+          // Do stuff here
+          console.log(activities);
+          this.setState({ activities: activities });
+
+        }).fail((xhr, textStatus, error) => {
+          console.error(`${client.fields['Account Name']} - GET ActivityLifecycle has failed`);
+        });
+
+      } else {
+        console.error(`${client.fields['Account Name']} has no LimeadeAccessToken`);
+      }
+    } else {
+      console.log('No client has been selected');
+    }
+  }
+
   setSelectedClient(e) {
     this.state.clients.forEach((client) => {
       if (client.fields['Limeade e='] === e.target.value) {
         this.setState({ selectedClient: client });
       }
     });
+  }
+
+  openActivity(activity) {
+    $('#tileModal').modal();
+    $('#tileModalBody').html(`
+      <img class="tile-image" src=${activity.ChallengeLogoURL} />
+      <h3 class="my-3">${activity.Name}</h3>
+      <div>${activity.ShortDescription}</div>
+      <div>${activity.AboutChallenge}</div>
+    `);
   }
 
   renderEmployerNames() {
@@ -84,6 +129,28 @@ class App extends Component {
   renderTiles() {
     return this.state.tiles.map((tile) => {
       return <Tile key={tile.Id} tile={tile} />;
+    });
+  }
+
+  renderActivities() {
+
+    // Filter out CIEs and past activities
+    const activities = this.state.activities.filter(activity => {
+      return activity.ChallengeId > 0 && activity.Status !== 'Completed';
+    });
+
+    activities.sort(dynamicSort('Status'));
+
+    return activities.map((activity) => {
+      return (
+        <tr key={activity.ChallengeId} onClick={() => this.openActivity(activity)}>
+          <td>{activity.Name}</td>
+          <td>{activity.ChallengeId}</td>
+          <td>{moment(activity.StartDate).format('ll')}</td>
+          <td>{moment(activity.EndDate).format('ll')}</td>
+          <td>{activity.Status}</td>
+        </tr>
+      );
     });
   }
 
@@ -100,12 +167,30 @@ class App extends Component {
           </select>
         </div>
 
-        <button type="button" className="btn btn-primary" onClick={() => this.getActivitiesForOneClient(this.state.selectedClient)}>What on My Home Page?</button>
+        <button type="button" className="btn btn-primary" onClick={() => this.getHomePageActivities(this.state.selectedClient)}>What's on My Home Page?</button>
         <p>(show's the home page as seen by the Admin)</p>
+
+        <button type="button" className="btn btn-primary" onClick={() => this.getAllActivities(this.state.selectedClient)}>I'd Rather See Everything</button>
+        <p>(show's all challenges current and scheduled)</p>
 
         <div id="tileContainer">
           {this.renderTiles()}
         </div>
+
+        <table className="table table-hover table-striped" id="activities">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">ChallengeId</th>
+              <th scope="col">StartDate</th>
+              <th scope="col">EndDate</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {this.renderActivities()}
+          </tbody>
+        </table>
 
         <Footer />
         <Modal />
