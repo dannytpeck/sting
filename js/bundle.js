@@ -6177,20 +6177,20 @@ function getRandomInt(min, max) {
 var Header = function (_Component) {
   _inherits(Header, _Component);
 
-  function Header() {
+  function Header(props) {
     _classCallCheck(this, Header);
 
-    return _possibleConstructorReturn(this, (Header.__proto__ || Object.getPrototypeOf(Header)).apply(this, arguments));
+    var _this = _possibleConstructorReturn(this, (Header.__proto__ || Object.getPrototypeOf(Header)).call(this, props));
+
+    var messages = ['Fun with APIs', 'Building the better mouse trap', 'Josh\'s anglophilia is out of control', 'Don\'t tell Limeade we made this', 'Dengue II: Dengue Harder', 'Take a penny, leave a penny'];
+
+    _this.state = {
+      message: messages[Math.floor(Math.random() * messages.length)]
+    };
+    return _this;
   }
 
   _createClass(Header, [{
-    key: 'generateMessage',
-    value: function generateMessage() {
-      var messages = ['Fun with APIs', 'Building the better mouse trap', 'Josh\'s anglophilia is out of control', 'Don\'t tell Limeade we made this', 'Dengue II: Dengue Harder', 'Take a penny, leave a penny'];
-
-      return messages[Math.floor(Math.random() * messages.length)];
-    }
-  }, {
     key: 'render',
     value: function render() {
       return _react2.default.createElement(
@@ -6205,7 +6205,7 @@ var Header = function (_Component) {
         _react2.default.createElement(
           'h3',
           null,
-          this.generateMessage()
+          this.state.message
         )
       );
     }

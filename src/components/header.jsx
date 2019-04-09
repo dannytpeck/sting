@@ -7,7 +7,9 @@ function getRandomInt(min, max) {
 }
 
 class Header extends Component {
-  generateMessage() {
+  constructor(props) {
+    super(props);
+
     const messages = [
       'Fun with APIs',
       'Building the better mouse trap',
@@ -17,7 +19,9 @@ class Header extends Component {
       'Take a penny, leave a penny'
     ];
 
-    return messages[Math.floor(Math.random() * messages.length)];
+    this.state = {
+      message: messages[Math.floor(Math.random() * messages.length)]
+    };
   }
 
   render() {
@@ -25,7 +29,7 @@ class Header extends Component {
       <header id="header">
         <img src="images/logo.svg" />
         <h1 className="title">Sting</h1>
-        <h3>{this.generateMessage()}</h3>
+        <h3>{this.state.message}</h3>
       </header>
     );
   }
