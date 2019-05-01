@@ -46,3 +46,7 @@ body {
 #bottomImage {
   width: 100%;
 }
+
+#tileModal .modal-dialog {
+  min-width: 1000px;
+}

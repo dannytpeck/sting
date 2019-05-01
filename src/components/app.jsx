@@ -17,7 +17,8 @@ class App extends Component {
       clients: [],
       selectedClient: null,
       tiles: [],
-      activities: []
+      activities: [],
+      selectedActivity: null
     };
   }
 
@@ -111,13 +112,9 @@ class App extends Component {
   }
 
   openActivity(activity) {
+    this.setState({ selectedActivity: activity });
+
     $('#tileModal').modal();
-    $('#tileModalBody').html(`
-      <img class="tile-image" src=${activity.ChallengeLogoURL} />
-      <h3 class="my-3">${activity.Name}</h3>
-      <div>${activity.ShortDescription}</div>
-      <div>${activity.AboutChallenge}</div>
-    `);
   }
 
   renderEmployerNames() {
@@ -193,7 +190,7 @@ class App extends Component {
         </table>
 
         <Footer />
-        <Modal />
+        <Modal activity={this.state.selectedActivity} />
       </div>
     );
   }
