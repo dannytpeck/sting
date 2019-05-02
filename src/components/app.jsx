@@ -75,7 +75,10 @@ class App extends Component {
   getAllActivities(client) {
     if (client) {
       if (client.fields['LimeadeAccessToken']) {
+
         console.log('Getting all activities (past, current, and scheduled) for ' + client.fields['Account Name']);
+        $('#spinner').show();
+
         $.ajax({
           url: 'https://api.limeade.com/api/admin/activity',
           type: 'GET',
@@ -89,6 +92,8 @@ class App extends Component {
 
           // Do stuff here
           console.log(activities);
+          $('#spinner').hide();
+
           this.setState({ activities: activities });
 
         }).fail((xhr, textStatus, error) => {
@@ -168,6 +173,7 @@ class App extends Component {
         <p>(show's the home page as seen by the Admin)</p> */}
 
         <button type="button" className="btn btn-primary" onClick={() => this.getAllActivities(this.state.selectedClient)}>I Want Everything</button>
+        <img id="spinner" src="images/spinner.svg" />
         <p>(show's all challenges current and scheduled)</p>
 
         <div id="tileContainer">
