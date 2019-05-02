@@ -16,9 +16,9 @@ class App extends Component {
     this.state = {
       clients: [],
       selectedClient: null,
-      tiles: [],
       activities: [],
-      selectedActivity: null
+      selectedActivity: null,
+      tiles: []
     };
   }
 
@@ -122,6 +122,42 @@ class App extends Component {
     $('#tileModal').modal();
   }
 
+  changeStartDate(e) {
+    const newActivity = this.state.selectedActivity;
+    newActivity.StartDate = e.target.value;
+    this.setState({ selectedActivity: newActivity });
+  }
+
+  changeEndDate(e) {
+    const newActivity = this.state.selectedActivity;
+    newActivity.EndDate = e.target.value;
+    this.setState({ selectedActivity: newActivity });
+  }
+
+  changeTrackingText(e) {
+    const newActivity = this.state.selectedActivity;
+    newActivity.ActivityType = e.target.value;
+    this.setState({ selectedActivity: newActivity });
+  }
+
+  changePoints(e) {
+    const newActivity = this.state.selectedActivity;
+    newActivity.ActivityReward.Value = e.target.value;
+    this.setState({ selectedActivity: newActivity });
+  }
+
+  changeName(e) {
+    const newActivity = this.state.selectedActivity;
+    newActivity.Name = e.target.value;
+    this.setState({ selectedActivity: newActivity });
+  }
+
+  changeShortDescription(e) {
+    const newActivity = this.state.selectedActivity;
+    newActivity.ShortDescription = e.target.value;
+    this.setState({ selectedActivity: newActivity });
+  }
+
   renderEmployerNames() {
     return this.state.clients.map((client) => {
       return <option key={client.id}>{client.fields['Limeade e=']}</option>;
@@ -196,7 +232,18 @@ class App extends Component {
         </table>
 
         <Footer />
-        <Modal activity={this.state.selectedActivity} />
+
+        <Modal
+          client={this.state.selectedClient}
+          activity={this.state.selectedActivity}
+          changeStartDate={(e) => this.changeStartDate(e)}
+          changeEndDate={(e) => this.changeEndDate(e)}
+          changeTrackingText={(e) => this.changeTrackingText(e)}
+          changePoints={(e) => this.changePoints(e)}
+          changeName={(e) => this.changeName(e)}
+          changeShortDescription={(e) => this.changeShortDescription(e)}
+        />
+
       </div>
     );
   }
