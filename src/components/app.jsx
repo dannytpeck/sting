@@ -164,10 +164,10 @@ class App extends Component {
           </select>
         </div>
 
-        <button type="button" className="btn btn-primary" onClick={() => this.getHomePageActivities(this.state.selectedClient)}>What's on My Home Page?</button>
-        <p>(show's the home page as seen by the Admin)</p>
+        {/* <button type="button" className="btn btn-primary" onClick={() => this.getHomePageActivities(this.state.selectedClient)}>What's on My Home Page?</button>
+        <p>(show's the home page as seen by the Admin)</p> */}
 
-        <button type="button" className="btn btn-primary" onClick={() => this.getAllActivities(this.state.selectedClient)}>I'd Rather See Everything</button>
+        <button type="button" className="btn btn-primary" onClick={() => this.getAllActivities(this.state.selectedClient)}>I Want Everything</button>
         <p>(show's all challenges current and scheduled)</p>
 
         <div id="tileContainer">
