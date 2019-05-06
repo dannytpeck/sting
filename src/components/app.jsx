@@ -210,7 +210,7 @@ class App extends Component {
 
         <button type="button" className="btn btn-primary" onClick={() => this.getAllActivities(this.state.selectedClient)}>I Want Everything</button>
         <img id="spinner" src="images/spinner.svg" />
-        <p>(show's all challenges current and scheduled)</p>
+        <p>(shows all challenges current and scheduled)</p>
 
         <div id="tileContainer">
           {this.renderTiles()}
