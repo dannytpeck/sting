@@ -1,5 +1,8 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import moment from 'moment';
+
+import Airtable from 'airtable';
+const base = new Airtable({ apiKey: 'keyCxnlep0bgotSrX' }).base('appN1J6yscNwlzbzq');
 
 import Header from './header';
 import Footer from './footer';
@@ -8,40 +11,41 @@ import Tile from './tile';
 
 import dynamicSort from '../helpers/dynamicSort';
 
+function clientsReducer(state, action) {
+  return [...state, ...action];
+}
+
 /* globals $ */
-class App extends Component {
-  constructor(props) {
-    super(props);
+function App() {
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [activities, setActivities] = useState([]);
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [tiles, setTiles] = useState([]);
 
-    this.state = {
-      clients: [],
-      selectedClient: null,
-      activities: [],
-      selectedActivity: null,
-      tiles: []
-    };
-  }
+  const [clients, dispatch] = React.useReducer(
+    clientsReducer,
+    [] // initial clients
+  );
 
-  componentDidMount() {
-    $.getJSON('https://api.airtable.com/v0/appHXXoVD1tn9QATh/Clients?api_key=keyCxnlep0bgotSrX&view=sorted').done(data => {
-      let records = data.records;
+  // When app first mounts, fetch clients
+  useEffect(() => {
 
-      if (data.offset) {
-        $.getJSON(`https://api.airtable.com/v0/appHXXoVD1tn9QATh/Clients?api_key=keyCxnlep0bgotSrX&view=sorted&offset=${data.offset}`).done(data => {
-          this.setState({
-            clients: [...records, ...data.records]
-          });
-        });
-      } else {
-        this.setState({
-          clients: records
-        });
+    base('Clients').select({
+      view: 'sorted'
+    }).eachPage((records, fetchNextPage) => {
+      dispatch(records);
+
+      fetchNextPage();
+    }, (err) => {
+      if (err) {
+        console.error(err);
+        return;
       }
-
     });
-  }
 
-  getHomePageActivities(client) {
+  }, []); // Pass empty array to only run once on mount
+
+  function getHomePageActivities(client) {
     if (client) {
       if (client.fields['LimeadeAccessToken']) {
         console.log('Getting visible Home page activities for ' + client.fields['Account Name']);
@@ -58,7 +62,7 @@ class App extends Component {
 
           // Do stuff here
           console.log(tiles);
-          this.setState({ tiles: tiles });
+          setTiles(tiles);
 
         }).fail((xhr, textStatus, error) => {
           console.error(`${client.fields['Account Name']} - GET Activities has failed`);
@@ -72,7 +76,7 @@ class App extends Component {
     }
   }
 
-  getAllActivities(client) {
+  function getAllActivities(client) {
     if (client) {
       if (client.fields['LimeadeAccessToken']) {
 
@@ -87,14 +91,14 @@ class App extends Component {
             Authorization: 'Bearer ' + client.fields['LimeadeAccessToken']
           },
           contentType: 'application/json; charset=utf-8'
-        }).done(result => {
+        }).done((result) => {
           const activities = result.Data;
 
           // Do stuff here
           console.log(activities);
           $('#spinner').hide();
 
-          this.setState({ activities: activities });
+          setActivities(activities);
 
         }).fail((xhr, textStatus, error) => {
           console.error(`${client.fields['Account Name']} - GET ActivityLifecycle has failed`);
@@ -108,80 +112,80 @@ class App extends Component {
     }
   }
 
-  setSelectedClient(e) {
-    this.state.clients.forEach((client) => {
+  function selectClient(e) {
+    clients.forEach((client) => {
       if (client.fields['Limeade e='] === e.target.value) {
-        this.setState({ selectedClient: client });
+        setSelectedClient(client);
       }
     });
   }
 
-  openActivity(activity) {
-    this.setState({ selectedActivity: activity });
+  function openActivity(activity) {
+    setSelectedActivity(activity);
 
     $('#tileModal').modal();
   }
 
-  changeStartDate(e) {
-    const newActivity = this.state.selectedActivity;
+  function changeStartDate(e) {
+    const newActivity = selectedActivity;
     newActivity.StartDate = e.target.value;
-    this.setState({ selectedActivity: newActivity });
+    setSelectedActivity(newActivity);
   }
 
-  changeEndDate(e) {
-    const newActivity = this.state.selectedActivity;
+  function changeEndDate(e) {
+    const newActivity = selectedActivity;
     newActivity.EndDate = e.target.value;
-    this.setState({ selectedActivity: newActivity });
+    setSelectedActivity(newActivity);
   }
 
-  changeTrackingText(e) {
-    const newActivity = this.state.selectedActivity;
+  function changeTrackingText(e) {
+    const newActivity = selectedActivity;
     newActivity.ActivityType = e.target.value;
-    this.setState({ selectedActivity: newActivity });
+    setSelectedActivity(newActivity);
   }
 
-  changePoints(e) {
-    const newActivity = this.state.selectedActivity;
+  function changePoints(e) {
+    const newActivity = selectedActivity;
     newActivity.ActivityReward.Value = e.target.value;
-    this.setState({ selectedActivity: newActivity });
+    setSelectedActivity(newActivity);
   }
 
-  changeName(e) {
-    const newActivity = this.state.selectedActivity;
+  function changeName(e) {
+    const newActivity = selectedActivity;
     newActivity.Name = e.target.value;
-    this.setState({ selectedActivity: newActivity });
+    setSelectedActivity(newActivity);
   }
 
-  changeShortDescription(e) {
-    const newActivity = this.state.selectedActivity;
+  function changeShortDescription(e) {
+    const newActivity = selectedActivity;
     newActivity.ShortDescription = e.target.value;
-    this.setState({ selectedActivity: newActivity });
+    setSelectedActivity(newActivity);
   }
 
-  renderEmployerNames() {
-    return this.state.clients.map((client) => {
+  function renderEmployerNames() {
+    return clients.map((client) => {
       return <option key={client.id}>{client.fields['Limeade e=']}</option>;
     });
   }
 
-  renderTiles() {
-    return this.state.tiles.map((tile) => {
+  function renderTiles() {
+    return tiles.map((tile) => {
       return <Tile key={tile.Id} tile={tile} />;
     });
   }
 
-  renderActivities() {
+  function renderActivities() {
 
     // Filter out CIEs and past activities
-    const activities = this.state.activities.filter(activity => {
+    const filteredActivities = activities.filter(activity => {
       return activity.ChallengeId > 0 && activity.Status !== 'Completed';
     });
 
-    activities.sort(dynamicSort('Status'));
+    filteredActivities.sort(dynamicSort('Status'));
 
-    return activities.map((activity) => {
+    return filteredActivities.map((activity) => {
       return (
-        <tr key={activity.ChallengeId} onClick={() => this.openActivity(activity)}>
+        <tr key={activity.ChallengeId} onClick={() => openActivity(activity)}>
           <td>{activity.Name}</td>
           <td>{activity.ChallengeId}</td>
           <td>{moment(activity.StartDate).format('ll')}</td>
@@ -192,61 +196,59 @@ class App extends Component {
     });
   }
 
-  render() {
-    return (
-      <div id="app">
-        <Header />
+  return (
+    <div id="app">
+      <Header />
 
-        <div className="form-group">
-          <label htmlFor="employerName">EmployerName</label>
-          <select id="employerName" className="form-control custom-select" onChange={(e) => this.setSelectedClient(e)}>
-            <option defaultValue>Select Employer</option>
-            {this.renderEmployerNames()}
-          </select>
-        </div>
-
-        {/* <button type="button" className="btn btn-primary" onClick={() => this.getHomePageActivities(this.state.selectedClient)}>What's on My Home Page?</button>
-        <p>(show's the home page as seen by the Admin)</p> */}
-
-        <button type="button" className="btn btn-primary" onClick={() => this.getAllActivities(this.state.selectedClient)}>I Want Everything</button>
-        <img id="spinner" src="images/spinner.svg" />
-        <p>(shows all challenges current and scheduled)</p>
-
-        <div id="tileContainer">
-          {this.renderTiles()}
-        </div>
-
-        <table className="table table-hover table-striped" id="activities">
-          <thead>
-            <tr>
-              <th scope="col">Name</th>
-              <th scope="col">ChallengeId</th>
-              <th scope="col">StartDate</th>
-              <th scope="col">EndDate</th>
-              <th scope="col">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {this.renderActivities()}
-          </tbody>
-        </table>
-
-        <Footer />
-
-        <Modal
-          client={this.state.selectedClient}
-          activity={this.state.selectedActivity}
-          changeStartDate={(e) => this.changeStartDate(e)}
-          changeEndDate={(e) => this.changeEndDate(e)}
-          changeTrackingText={(e) => this.changeTrackingText(e)}
-          changePoints={(e) => this.changePoints(e)}
-          changeName={(e) => this.changeName(e)}
-          changeShortDescription={(e) => this.changeShortDescription(e)}
-        />
-
+      <div className="form-group">
+        <label htmlFor="employerName">EmployerName</label>
+        <select id="employerName" className="form-control custom-select" onChange={(e) => selectClient(e)}>
+          <option defaultValue>Select Employer</option>
+          {renderEmployerNames()}
+        </select>
       </div>
-    );
-  }
+
+      {/* <button type="button" className="btn btn-primary" onClick={() => this.getHomePageActivities(this.state.selectedClient)}>What's on My Home Page?</button>
+      <p>(show's the home page as seen by the Admin)</p> */}
+
+      <button type="button" className="btn btn-primary" onClick={() => getAllActivities(selectedClient)}>I Want Everything</button>
+      <img id="spinner" src="images/spinner.svg" />
+      <p>(shows all challenges current and scheduled)</p>
+
+      <div id="tileContainer">
+        {renderTiles()}
+      </div>
+
+      <table className="table table-hover table-striped" id="activities">
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">ChallengeId</th>
+            <th scope="col">StartDate</th>
+            <th scope="col">EndDate</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {renderActivities()}
+        </tbody>
+      </table>
+
+      <Footer />
+
+      <Modal
+        client={selectedClient}
+        activity={selectedActivity}
+        changeStartDate={(e) => changeStartDate(e)}
+        changeEndDate={(e) => changeEndDate(e)}
+        changeTrackingText={(e) => changeTrackingText(e)}
+        changePoints={(e) => changePoints(e)}
+        changeName={(e) => changeName(e)}
+        changeShortDescription={(e) => changeShortDescription(e)}
+      />
+
+    </div>
+  );
 }
 
 export default App;
