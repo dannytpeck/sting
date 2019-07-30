@@ -76,11 +76,54 @@ function App() {
     }
   }
 
-  function getAllActivities(client) {
-    if (client) {
-      if (client.fields['LimeadeAccessToken']) {
+  function massUpdater(activities) {
 
-        console.log('Getting all activities (past, current, and scheduled) for ' + client.fields['Account Name']);
+    const activitiesToUpdate = activities.filter(activity => {
+
+      // Skip CIEs and find tiles using old image server
+      if (activity.ChallengeId > 0 && activity.AboutChallenge.includes('mywellnessnumbers.com/ChallengeBank/')) {
+
+        const today = moment();
+        const endDate = moment(activity.EndDate);
+
+        if (today < endDate) {
+          return true;
+        }
+
+      }
+
+    });
+
+    console.log(activitiesToUpdate);
+
+    activitiesToUpdate.map(activity => {
+      const updatedAboutChallenge = activity.AboutChallenge.replace(/https:\/\/mywellnessnumbers.com\/ChallengeBank\//g, 'https://cdn.adurolife.com/dsjx/aduro/legacy/');
+      const data = {
+        AboutChallenge: updatedAboutChallenge
+      };
+
+      $.ajax({
+        url: 'https://api.limeade.com/api/admin/activity/' + activity.ChallengeId,
+        type: 'PUT',
+        data: JSON.stringify(data),
+        dataType: 'json',
+        headers: {
+          Authorization: 'Bearer ' + selectedClient.fields['LimeadeAccessToken']
+        },
+        contentType: 'application/json; charset=utf-8'
+      }).done((result) => {
+        console.log('Done', result);
+      });
+
+    });
+
+  }
+
+  function getAllActivities() {
+    if (selectedClient) {
+      if (selectedClient.fields['LimeadeAccessToken']) {
+
+        console.log('Getting all activities (past, current, and scheduled) for ' + selectedClient.fields['Account Name']);
         $('#spinner').show();
 
         $.ajax({
@@ -88,24 +131,24 @@ function App() {
           type: 'GET',
           dataType: 'json',
           headers: {
-            Authorization: 'Bearer ' + client.fields['LimeadeAccessToken']
+            Authorization: 'Bearer ' + selectedClient.fields['LimeadeAccessToken']
           },
           contentType: 'application/json; charset=utf-8'
         }).done((result) => {
+          $('#spinner').hide();
           const activities = result.Data;
 
-          // Do stuff here
-          console.log(activities);
-          $('#spinner').hide();
+          // handles any updates needed for every activity in the platform
+          // massUpdater(activities);
 
           setActivities(activities);
 
         }).fail((xhr, textStatus, error) => {
-          console.error(`${client.fields['Account Name']} - GET ActivityLifecycle has failed`);
+          console.error(`${selectedClient.fields['Account Name']} - GET ActivityLifecycle has failed`);
         });
 
       } else {
-        console.error(`${client.fields['Account Name']} has no LimeadeAccessToken`);
+        console.error(`${selectedClient.fields['Account Name']} has no LimeadeAccessToken`);
       }
     } else {
       console.log('No client has been selected');
@@ -211,7 +254,7 @@ function App() {
       {/* <button type="button" className="btn btn-primary" onClick={() => this.getHomePageActivities(this.state.selectedClient)}>What's on My Home Page?</button>
       <p>(show's the home page as seen by the Admin)</p> */}
 
-      <button type="button" className="btn btn-primary" onClick={() => getAllActivities(selectedClient)}>I Want Everything</button>
+      <button type="button" className="btn btn-primary" onClick={getAllActivities}>I Want Everything</button>
       <img id="spinner" src="images/spinner.svg" />
       <p>(shows all challenges current and scheduled)</p>
 
