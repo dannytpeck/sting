@@ -47,7 +47,7 @@ class Header extends Component {
     return (
       <header id="header">
         <img src="images/logo.svg" />
-        <h1 className="title">Sting</h1>
+        <h1 className="title">National Treasure</h1>
         <h3>{this.state.message}</h3>
       </header>
     );
