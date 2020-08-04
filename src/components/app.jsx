@@ -19,7 +19,7 @@ function clientsReducer(state, action) {
 function App() {
   const [selectedClient, setSelectedClient] = useState(null);
   const [activities, setActivities] = useState([]);
-  const [pdfUrl, setPdfUrl] = useState('');
+  const [fileUrl, setFileUrl] = useState('');
 
   const [clients, dispatch] = React.useReducer(
     clientsReducer,
@@ -79,7 +79,7 @@ function App() {
 
   function selectClient(e) {
     clients.forEach((client) => {
-      if (client.fields['Limeade e='] === e.target.value) {
+      if (client.fields['Account Name'] === e.target.value) {
         setSelectedClient(client);
       }
     });
@@ -87,7 +87,7 @@ function App() {
 
   function renderEmployerNames() {
     return clients.map((client) => {
-      return <option key={client.id}>{client.fields['Limeade e=']}</option>;
+      return <option key={client.id}>{client.fields['Account Name']}</option>;
     });
   }
 
@@ -98,36 +98,49 @@ function App() {
     const filteredActivities = activities.filter(activity => {
 
       // Put filter logic in here
-      let includesPdfUrl;
+      let includesFileUrl;
       const isNotCompleted = activity.Status !== 'Completed';
 
       if (activity.ShortDescription) {
-        includesPdfUrl = activity.ShortDescription.includes(pdfUrl) || activity.AboutChallenge.includes(pdfUrl);
+        includesFileUrl = activity.ShortDescription.includes(fileUrl) || activity.AboutChallenge.includes(fileUrl);
       } else {
-        includesPdfUrl = activity.AboutChallenge.includes(pdfUrl);
+        includesFileUrl = activity.AboutChallenge.includes(fileUrl);
       }
 
-      return isNotCompleted && includesPdfUrl;
+      return isNotCompleted && includesFileUrl;
 
     });
 
     // filteredActivities.sort(dynamicSort('ChallengeId'));
 
     return filteredActivities.map((activity, i) => {
-      return (
-        <tr key={i}>
-          <td>{activity.Name}</td>
-          <td>{activity.ChallengeId > 0 ? activity.ChallengeId : 'CIE ' + (activity.ChallengeId * -1)}</td>
-          <td>{moment(activity.StartDate).format('ll')}</td>
-          <td>{moment(activity.EndDate).format('ll')}</td>
-          <td>{activity.Status}</td>
-        </tr>
-      );
+      if (activity.ChallengeId < 0) {
+        // for CIEs
+        const id = activity.ChallengeId * -1;
+        return (
+          <tr key={i}>
+            <td><a href={selectedClient.fields['Domain'] + '/Home/?cid=' + id} target="_blank">{activity.Name}</a></td>
+            <td>{'CIE ' + id}</td>
+            <td>{moment(activity.StartDate).format('ll')}</td>
+            <td>{moment(activity.EndDate).format('ll')}</td>
+          </tr>
+        );
+      } else {
+        // for Challenges
+        return (
+          <tr key={i}>
+            <td><a href={selectedClient.fields['Domain'] + '/Home/?cid=' + activity.ChallengeId} target="_blank">{activity.Name}</a></td>
+            <td><a href={selectedClient.fields['Domain'] + '/admin/program-designer/activities/activity/' + activity.ChallengeId} target="_blank">{activity.ChallengeId}</a></td>
+            <td>{moment(activity.StartDate).format('ll')}</td>
+            <td>{moment(activity.EndDate).format('ll')}</td>
+          </tr>
+        );
+      }
     });
   }
 
-  function handleChangePdfUrl(e) {
-    setPdfUrl(e.target.value);
+  function handleChangeFileUrl(e) {
+    setFileUrl(e.target.value);
   }
 
   return (
@@ -143,9 +156,9 @@ function App() {
       </div>
 
       <div className="form-group">
-        <label htmlFor="pdfUrl">PDF Url</label>
-        <input type="text" className="form-control" id="pdfUrl" placeholder="https://..." value={pdfUrl} onChange={handleChangePdfUrl} />
-        <small id="pdfUrlHelp" className="form-text text-muted">Copy the whole url with the "https://"</small>
+        <label htmlFor="fileUrl">File Url</label>
+        <input type="text" className="form-control" id="fileUrl" placeholder="https://..." value={fileUrl} onChange={handleChangeFileUrl} />
+        <small id="fileUrlHelp" className="form-text text-muted">Copy the whole url with the "https://"</small>
       </div>
 
       <div className="form-group">
@@ -161,7 +174,6 @@ function App() {
             <th scope="col">ChallengeId</th>
             <th scope="col">StartDate</th>
             <th scope="col">EndDate</th>
-            <th scope="col">Status</th>
           </tr>
         </thead>
         <tbody>

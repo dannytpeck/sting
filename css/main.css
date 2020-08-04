@@ -2,6 +2,11 @@ body {
   color: #554E49;
 }
 
+td a {
+  color: initial;
+  text-decoration: underline;
+}
+
 #header {
   text-align: center;
   margin: 2em 0;
