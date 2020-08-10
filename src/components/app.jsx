@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 
 import Airtable from 'airtable';
-const base = new Airtable({ apiKey: 'keyCxnlep0bgotSrX' }).base('appHXXoVD1tn9QATh');
+const base = new Airtable({ apiKey: 'keyCxnlep0bgotSrX' }).base('appN1J6yscNwlzbzq');
 
 import Header from './header';
 import Footer from './footer';
@@ -19,7 +19,8 @@ function clientsReducer(state, action) {
 function App() {
   const [selectedClient, setSelectedClient] = useState(null);
   const [activities, setActivities] = useState([]);
-  const [fileUrl, setFileUrl] = useState('');
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [tiles, setTiles] = useState([]);
 
   const [clients, dispatch] = React.useReducer(
     clientsReducer,
@@ -44,6 +45,80 @@ function App() {
 
   }, []); // Pass empty array to only run once on mount
 
+  function getHomePageActivities(client) {
+    if (client) {
+      if (client.fields['LimeadeAccessToken']) {
+        console.log('Getting visible Home page activities for ' + client.fields['Account Name']);
+        $.ajax({
+          url: 'https://api.limeade.com/api/activities/?types=5&status=1&attributes=1&contents=32319',
+          type: 'GET',
+          dataType: 'json',
+          headers: {
+            Authorization: 'Bearer ' + client.fields['LimeadeAccessToken']
+          },
+          contentType: 'application/json; charset=utf-8'
+        }).done(result => {
+          const tiles = result.Data;
+
+          // Do stuff here
+          console.log(tiles);
+          setTiles(tiles);
+
+        }).fail((xhr, textStatus, error) => {
+          console.error(`${client.fields['Account Name']} - GET Activities has failed`);
+        });
+
+      } else {
+        console.error(`${client.fields['Account Name']} has no LimeadeAccessToken`);
+      }
+    } else {
+      console.log('No client has been selected');
+    }
+  }
+
+  function massUpdater(activities) {
+
+    const activitiesToUpdate = activities.filter(activity => {
+
+      // Skip CIEs and find tiles using old image server
+      if (activity.ChallengeId > 0 && activity.AboutChallenge.includes('mywellnessnumbers.com/ChallengeBank/')) {
+
+        const today = moment();
+        const endDate = moment(activity.EndDate);
+
+        if (today < endDate) {
+          return true;
+        }
+
+      }
+
+    });
+
+    console.log(activitiesToUpdate);
+
+    activitiesToUpdate.map(activity => {
+      const updatedAboutChallenge = activity.AboutChallenge.replace(/https:\/\/mywellnessnumbers.com\/ChallengeBank\//g, 'https://cdn.adurolife.com/dsjx/aduro/legacy/');
+      const data = {
+        AboutChallenge: updatedAboutChallenge
+      };
+
+      $.ajax({
+        url: 'https://api.limeade.com/api/admin/activity/' + activity.ChallengeId,
+        type: 'PUT',
+        data: JSON.stringify(data),
+        dataType: 'json',
+        headers: {
+          Authorization: 'Bearer ' + selectedClient.fields['LimeadeAccessToken']
+        },
+        contentType: 'application/json; charset=utf-8'
+      }).done((result) => {
+        console.log('Done', result);
+      });
+
+    });
+
+  }
+
   function getAllActivities() {
     if (selectedClient) {
       if (selectedClient.fields['LimeadeAccessToken']) {
@@ -63,6 +138,9 @@ function App() {
           $('#spinner').hide();
           const activities = result.Data;
 
+          // handles any updates needed for every activity in the platform
+          // massUpdater(activities);
+
           setActivities(activities);
 
         }).fail((xhr, textStatus, error) => {
@@ -79,68 +157,86 @@ function App() {
 
   function selectClient(e) {
     clients.forEach((client) => {
-      if (client.fields['Account Name'] === e.target.value) {
+      if (client.fields['Limeade e='] === e.target.value) {
         setSelectedClient(client);
       }
     });
   }
 
+  function openActivity(activity) {
+    setSelectedActivity(activity);
+
+    $('#tileModal').modal();
+  }
+
+  function changeStartDate(e) {
+    const newActivity = selectedActivity;
+    newActivity.StartDate = e.target.value;
+    setSelectedActivity(newActivity);
+  }
+
+  function changeEndDate(e) {
+    const newActivity = selectedActivity;
+    newActivity.EndDate = e.target.value;
+    setSelectedActivity(newActivity);
+  }
+
+  function changeTrackingText(e) {
+    const newActivity = selectedActivity;
+    newActivity.ActivityType = e.target.value;
+    setSelectedActivity(newActivity);
+  }
+
+  function changePoints(e) {
+    const newActivity = selectedActivity;
+    newActivity.ActivityReward.Value = e.target.value;
+    setSelectedActivity(newActivity);
+  }
+
+  function changeName(e) {
+    const newActivity = selectedActivity;
+    newActivity.Name = e.target.value;
+    setSelectedActivity(newActivity);
+  }
+
+  function changeShortDescription(e) {
+    const newActivity = selectedActivity;
+    newActivity.ShortDescription = e.target.value;
+    setSelectedActivity(newActivity);
+  }
+
   function renderEmployerNames() {
     return clients.map((client) => {
-      return <option key={client.id}>{client.fields['Account Name']}</option>;
+      return <option key={client.id}>{client.fields['Limeade e=']}</option>;
+    });
+  }
+
+  function renderTiles() {
+    return tiles.map((tile) => {
+      return <Tile key={tile.Id} tile={tile} />;
     });
   }
 
   function renderActivities() {
-    console.log(activities);
 
     // Filter out CIEs and past activities
     const filteredActivities = activities.filter(activity => {
-
-      // Put filter logic in here
-      let includesFileUrl;
-      const isNotCompleted = activity.Status !== 'Completed';
-
-      if (activity.ShortDescription) {
-        includesFileUrl = activity.ShortDescription.includes(fileUrl) || activity.AboutChallenge.includes(fileUrl);
-      } else {
-        includesFileUrl = activity.AboutChallenge.includes(fileUrl);
-      }
-
-      return isNotCompleted && includesFileUrl;
-
+      return activity.ChallengeId > 0 && activity.Status !== 'Completed';
     });
 
-    // filteredActivities.sort(dynamicSort('ChallengeId'));
+    filteredActivities.sort(dynamicSort('Status'));
 
-    return filteredActivities.map((activity, i) => {
-      if (activity.ChallengeId < 0) {
-        // for CIEs
-        const id = activity.ChallengeId * -1;
-        return (
-          <tr key={i}>
-            <td><a href={selectedClient.fields['Domain'] + '/Home/?cid=' + id} target="_blank">{activity.Name}</a></td>
-            <td>{'CIE ' + id}</td>
-            <td>{moment(activity.StartDate).format('ll')}</td>
-            <td>{moment(activity.EndDate).format('ll')}</td>
-          </tr>
-        );
-      } else {
-        // for Challenges
-        return (
-          <tr key={i}>
-            <td><a href={selectedClient.fields['Domain'] + '/Home/?cid=' + activity.ChallengeId} target="_blank">{activity.Name}</a></td>
-            <td><a href={selectedClient.fields['Domain'] + '/admin/program-designer/activities/activity/' + activity.ChallengeId} target="_blank">{activity.ChallengeId}</a></td>
-            <td>{moment(activity.StartDate).format('ll')}</td>
-            <td>{moment(activity.EndDate).format('ll')}</td>
-          </tr>
-        );
-      }
+    return filteredActivities.map((activity) => {
+      return (
+        <tr key={activity.ChallengeId} onClick={() => openActivity(activity)}>
+          <td>{activity.Name}</td>
+          <td>{activity.ChallengeId}</td>
+          <td>{moment(activity.StartDate).format('ll')}</td>
+          <td>{moment(activity.EndDate).format('ll')}</td>
+          <td>{activity.Status}</td>
+        </tr>
+      );
     });
-  }
-
-  function handleChangeFileUrl(e) {
-    setFileUrl(e.target.value);
   }
 
   return (
@@ -155,17 +251,16 @@ function App() {
         </select>
       </div>
 
-      <div className="form-group">
-        <label htmlFor="fileUrl">File Url</label>
-        <input type="text" className="form-control" id="fileUrl" placeholder="https://..." value={fileUrl} onChange={handleChangeFileUrl} />
-        <small id="fileUrlHelp" className="form-text text-muted">Copy the whole url with the "https://"</small>
-      </div>
+      {/* <button type="button" className="btn btn-primary" onClick={() => this.getHomePageActivities(this.state.selectedClient)}>What's on My Home Page?</button>
+      <p>(show's the home page as seen by the Admin)</p> */}
 
-      <div className="form-group">
-        <button type="button" className="btn btn-primary" onClick={getAllActivities}>Search Tiles</button>
-      </div>
-
+      <button type="button" className="btn btn-primary" onClick={getAllActivities}>I Want Everything</button>
       <img id="spinner" src="images/spinner.svg" />
+      <p>(shows all challenges current and scheduled)</p>
+
+      <div id="tileContainer">
+        {renderTiles()}
+      </div>
 
       <table className="table table-hover table-striped" id="activities">
         <thead>
@@ -174,6 +269,7 @@ function App() {
             <th scope="col">ChallengeId</th>
             <th scope="col">StartDate</th>
             <th scope="col">EndDate</th>
+            <th scope="col">Status</th>
           </tr>
         </thead>
         <tbody>
@@ -182,6 +278,17 @@ function App() {
       </table>
 
       <Footer />
+
+      <Modal
+        client={selectedClient}
+        activity={selectedActivity}
+        changeStartDate={(e) => changeStartDate(e)}
+        changeEndDate={(e) => changeEndDate(e)}
+        changeTrackingText={(e) => changeTrackingText(e)}
+        changePoints={(e) => changePoints(e)}
+        changeName={(e) => changeName(e)}
+        changeShortDescription={(e) => changeShortDescription(e)}
+      />
 
     </div>
   );

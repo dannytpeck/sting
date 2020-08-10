@@ -1,14 +1,14 @@
-# National Treasure
+# Sting
 
-A PDF finder tool that lets you scour Limeade platforms for which tiles are using PDFs
+An app to work with Limeade's APIs, named for the drink that fueled its creation
 
 ### Getting Started ###
 
 Clone this repo, install dependencies, then start developing with webpack/browser-sync using these steps:
 
 ```
-	> git clone https://github.com/dannytpeck/national-treasure.git
-	> cd national-treasure
+	> git clone https://github.com/dannytpeck/sting.git
+	> cd sting
 	> npm install
 	> npm start
 ```
